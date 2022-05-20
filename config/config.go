@@ -6,7 +6,6 @@ import "github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/fetchers"
 type PriceNotifierConfig struct {
 	GeneralConfig       GeneralNotifierConfig
 	Pairs               []Pair
-	Exchanges           ExchangesConfig
 	MexTokenIDsMappings map[string]fetchers.MaiarTokensPair
 }
 
@@ -34,9 +33,4 @@ type Pair struct {
 	PercentDifferenceToNotify uint32
 	TrimPrecision             float64
 	DenominationFactor        uint64
-}
-
-// ExchangesConfig preferred exchanges configuration
-type ExchangesConfig struct {
-	PreferredSources []string
 }

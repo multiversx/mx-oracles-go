@@ -70,7 +70,7 @@ func runApp() error {
 		return err
 	}
 
-	priceFetchers, err := createPriceFetchers(cfg.MexTokenIDsMappings, cfg.Exchanges.PreferredSources)
+	priceFetchers, err := createPriceFetchers(cfg.MexTokenIDsMappings)
 	if err != nil {
 		return err
 	}
@@ -187,17 +187,11 @@ func loadConfig(filepath string) (config.PriceNotifierConfig, error) {
 	return cfg, nil
 }
 
-func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair, preferredSources []string) ([]aggregator.PriceFetcher, error) {
+func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
 	exchanges := fetchers.ImplementedFetchers
 	priceFetchers := make([]aggregator.PriceFetcher, 0)
-	for _, source := range preferredSources {
-		_, ok := exchanges[source]
-		if !ok {
-			log.Info("invalid exchange name from config", "name", source)
-			continue
-		}
-
-		priceFetcher, err := fetchers.NewPriceFetcher(source, &aggregator.HttpResponseGetter{}, tokenIdsMappings)
+	for exchangeName := range exchanges {
+		priceFetcher, err := fetchers.NewPriceFetcher(exchangeName, &aggregator.HttpResponseGetter{}, tokenIdsMappings)
 		if err != nil {
 			return nil, err
 		}

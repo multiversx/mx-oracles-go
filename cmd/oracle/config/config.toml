@@ -23,9 +23,6 @@
     TrimPrecision = 0.01 # trim precision for prices
     DenominationFactor = 100 # denomination factor
 
-[Exchanges]
-    PreferredSources = ["Binance", "Bitfinex", "Crypto.com", "HitBTC", "Huobi", "Maiar", "Okex"]
-
 # Maiar Exchange token ids mappings
 # This should be a mapping between the above generic symbols pairs and their maiar token ids equivalents
 # The key in map must be uppercase and tokens should be separated by "-"
