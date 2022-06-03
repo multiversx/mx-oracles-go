@@ -146,6 +146,8 @@ func runApp() error {
 		return err
 	}
 
+	addPairsToFetchers(cfg.Pairs, priceFetchers)
+
 	argsPollingHandler := polling.ArgsPollingHandler{
 		Log:              log,
 		Name:             "price notifier polling handler",
@@ -200,4 +202,24 @@ func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair) (
 	}
 
 	return priceFetchers, nil
+}
+
+func addPairsToFetchers(pairs []config.Pair, priceFetchers []aggregator.PriceFetcher) {
+	for _, pair := range pairs {
+		exchangesMap := getMapFromSlice(pair.Exchanges)
+		for _, fetcher := range priceFetchers {
+			_, ok := exchangesMap[fetcher.Name()]
+			if ok {
+				fetcher.AddPair(pair.Base, pair.Quote)
+			}
+		}
+	}
+}
+
+func getMapFromSlice(exchangesSlice []string) map[string]struct{} {
+	exchangesMap := make(map[string]struct{})
+	for _, exchange := range exchangesSlice {
+		exchangesMap[exchange] = struct{}{}
+	}
+	return exchangesMap
 }

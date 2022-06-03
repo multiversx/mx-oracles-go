@@ -6,7 +6,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-core v1.1.14
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.6
-	github.com/ElrondNetwork/elrond-sdk-erdgo v1.0.22
+	github.com/ElrondNetwork/elrond-sdk-erdgo v1.0.23-0.20220603145521-7a33c650ade0 // todo add proper release
 )
 
 require (
