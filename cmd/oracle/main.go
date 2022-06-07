@@ -127,7 +127,7 @@ func runApp() error {
 
 	argsPriceNotifier := aggregator.ArgsPriceNotifier{
 		Pairs:            []*aggregator.ArgsPair{},
-		Fetcher:          priceAggregator,
+		Aggregator:       priceAggregator,
 		Notifee:          elrondNotifee,
 		AutoSendInterval: time.Second * time.Duration(cfg.GeneralConfig.AutoSendIntervalInSeconds),
 	}
