@@ -137,6 +137,7 @@ func runApp() error {
 			Quote:                     pair.Quote,
 			PercentDifferenceToNotify: pair.PercentDifferenceToNotify,
 			Decimals:                  pair.Decimals,
+			Exchanges:                 getMapFromSlice(pair.Exchanges),
 		}
 		argsPriceNotifier.Pairs = append(argsPriceNotifier.Pairs, argsPair)
 	}
