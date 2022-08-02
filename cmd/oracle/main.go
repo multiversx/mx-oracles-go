@@ -127,7 +127,7 @@ func runApp() error {
 
 	argsPriceNotifier := aggregator.ArgsPriceNotifier{
 		Pairs:            []*aggregator.ArgsPair{},
-		Fetcher:          priceAggregator,
+		Aggregator:       priceAggregator,
 		Notifee:          elrondNotifee,
 		AutoSendInterval: time.Second * time.Duration(cfg.GeneralConfig.AutoSendIntervalInSeconds),
 	}
@@ -145,6 +145,8 @@ func runApp() error {
 	if err != nil {
 		return err
 	}
+
+	addPairsToFetchers(cfg.Pairs, priceFetchers)
 
 	argsPollingHandler := polling.ArgsPollingHandler{
 		Log:              log,
@@ -200,4 +202,24 @@ func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair) (
 	}
 
 	return priceFetchers, nil
+}
+
+func addPairsToFetchers(pairs []config.Pair, priceFetchers []aggregator.PriceFetcher) {
+	for _, pair := range pairs {
+		exchangesMap := getMapFromSlice(pair.Exchanges)
+		for _, fetcher := range priceFetchers {
+			_, ok := exchangesMap[fetcher.Name()]
+			if ok {
+				fetcher.AddPair(pair.Base, pair.Quote)
+			}
+		}
+	}
+}
+
+func getMapFromSlice(exchangesSlice []string) map[string]struct{} {
+	exchangesMap := make(map[string]struct{})
+	for _, exchange := range exchangesSlice {
+		exchangesMap[exchange] = struct{}{}
+	}
+	return exchangesMap
 }

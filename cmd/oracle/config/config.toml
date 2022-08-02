@@ -16,12 +16,24 @@
     ProxyFinalityCheck = false
     ProxyMaxNoncesDelta = 7 # the number of maximum blocks allowed to be "in front" of what the metachain has notarized
 
+
+# Each pair has a specific list of exchanges from where the price can be fetched
+# This list must be in respect with the implemented fetchers names:
+# "Binance", "Bitfinex", "Crypto.com", "Gemini", "HitBTC", "Huobi", "Kraken", "Okex", "Maiar"
 [[Pairs]]
     Base = "ETH"
     Quote = "USD"
     PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
     TrimPrecision = 0.01 # trim precision for prices
     DenominationFactor = 100 # denomination factor
+    Exchanges = ["Binance", "Bitfinex", "Crypto.com", "Gemini", "HitBTC", "Huobi", "Kraken", "Okex"]
+[[Pairs]]
+    Base = "EGLD"
+    Quote = "USD"
+    PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
+    TrimPrecision = 0.01 # trim precision for prices
+    DenominationFactor = 100 # denomination factor
+    Exchanges = ["Binance", "Bitfinex", "Crypto.com", "HitBTC", "Huobi", "Okex", "Maiar"]
 
 # Maiar Exchange token ids mappings
 # This should be a mapping between the above generic symbols pairs and their maiar token ids equivalents
