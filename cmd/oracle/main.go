@@ -132,21 +132,20 @@ func runApp() error {
 		AutoSendInterval: time.Second * time.Duration(cfg.GeneralConfig.AutoSendIntervalInSeconds),
 	}
 	for _, pair := range cfg.Pairs {
-		argsPair := &aggregator.ArgsPair{
+		argsPair := aggregator.ArgsPair{
 			Base:                      pair.Base,
 			Quote:                     pair.Quote,
 			PercentDifferenceToNotify: pair.PercentDifferenceToNotify,
-			TrimPrecision:             pair.TrimPrecision,
-			DenominationFactor:        pair.DenominationFactor,
+			Decimals:                  pair.Decimals,
+			Exchanges:                 getMapFromSlice(pair.Exchanges),
 		}
-		argsPriceNotifier.Pairs = append(argsPriceNotifier.Pairs, argsPair)
+		addPairToFetchers(argsPair, priceFetchers)
+		argsPriceNotifier.Pairs = append(argsPriceNotifier.Pairs, &argsPair)
 	}
 	priceNotifier, err := aggregator.NewPriceNotifier(argsPriceNotifier)
 	if err != nil {
 		return err
 	}
-
-	addPairsToFetchers(cfg.Pairs, priceFetchers)
 
 	argsPollingHandler := polling.ArgsPollingHandler{
 		Log:              log,
@@ -204,14 +203,11 @@ func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair) (
 	return priceFetchers, nil
 }
 
-func addPairsToFetchers(pairs []config.Pair, priceFetchers []aggregator.PriceFetcher) {
-	for _, pair := range pairs {
-		exchangesMap := getMapFromSlice(pair.Exchanges)
-		for _, fetcher := range priceFetchers {
-			_, ok := exchangesMap[fetcher.Name()]
-			if ok {
-				fetcher.AddPair(pair.Base, pair.Quote)
-			}
+func addPairToFetchers(argsPair aggregator.ArgsPair, priceFetchers []aggregator.PriceFetcher) {
+	for _, fetcher := range priceFetchers {
+		_, ok := argsPair.Exchanges[fetcher.Name()]
+		if ok {
+			fetcher.AddPair(argsPair.Base, argsPair.Quote)
 		}
 	}
 }
