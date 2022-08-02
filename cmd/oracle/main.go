@@ -190,7 +190,7 @@ func loadConfig(filepath string) (config.PriceNotifierConfig, error) {
 func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
 	exchanges := fetchers.ImplementedFetchers
 	priceFetchers := make([]aggregator.PriceFetcher, 0, len(exchanges))
-	for _, exchangeName := range exchanges {
+	for exchangeName := range exchanges {
 		priceFetcher, err := fetchers.NewPriceFetcher(exchangeName, &aggregator.HttpResponseGetter{}, tokenIdsMappings)
 		if err != nil {
 			return nil, err
