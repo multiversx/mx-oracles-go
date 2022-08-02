@@ -136,8 +136,7 @@ func runApp() error {
 			Base:                      pair.Base,
 			Quote:                     pair.Quote,
 			PercentDifferenceToNotify: pair.PercentDifferenceToNotify,
-			TrimPrecision:             pair.TrimPrecision,
-			DenominationFactor:        pair.DenominationFactor,
+			Decimals:                  pair.Decimals,
 		}
 		argsPriceNotifier.Pairs = append(argsPriceNotifier.Pairs, argsPair)
 	}

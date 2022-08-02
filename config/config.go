@@ -31,7 +31,6 @@ type Pair struct {
 	Base                      string
 	Quote                     string
 	PercentDifferenceToNotify uint32
-	TrimPrecision             float64
-	DenominationFactor        uint64
+	Decimals                  uint64
 	Exchanges                 []string
 }

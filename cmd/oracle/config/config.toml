@@ -24,15 +24,13 @@
     Base = "ETH"
     Quote = "USD"
     PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
-    TrimPrecision = 0.01 # trim precision for prices
-    DenominationFactor = 100 # denomination factor
+    Decimals = 4 # decimals for prices
     Exchanges = ["Binance", "Bitfinex", "Crypto.com", "Gemini", "HitBTC", "Huobi", "Kraken", "Okex"]
 [[Pairs]]
     Base = "EGLD"
     Quote = "USD"
     PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
-    TrimPrecision = 0.01 # trim precision for prices
-    DenominationFactor = 100 # denomination factor
+    Decimals = 2 # decimals for prices
     Exchanges = ["Binance", "Bitfinex", "Crypto.com", "HitBTC", "Huobi", "Okex", "Maiar"]
 
 # Maiar Exchange token ids mappings
