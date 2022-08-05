@@ -24,7 +24,7 @@ type GeneralNotifierConfig struct {
 	ProxyRestAPIEntityType       string
 	ProxyMaxNoncesDelta          int
 	ProxyFinalityCheck           bool
-	Logs                         LogsConfig
+	LogFileLifeSpanInSec         int
 }
 
 // Pair parameters for a pair
@@ -45,9 +45,4 @@ type ContextFlagsConfig struct {
 	SaveLogFile       bool
 	EnableLogName     bool
 	RestApiInterface  string
-}
-
-// LogsConfig will hold settings related to the logging sub-system
-type LogsConfig struct {
-	LogFileLifeSpanInSec int
 }
