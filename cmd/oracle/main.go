@@ -93,7 +93,7 @@ func startOracle(ctx *cli.Context, version string) error {
 	}
 
 	if !check.IfNil(fileLogging) {
-		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfg.GeneralConfig.Logs.LogFileLifeSpanInSec))
+		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfg.GeneralConfig.LogFileLifeSpanInSec))
 		if err != nil {
 			return err
 		}
