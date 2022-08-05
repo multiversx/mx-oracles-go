@@ -7,8 +7,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-const filePathPlaceholder = "[path]"
-
 var (
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -18,37 +16,31 @@ var (
 			" log level.",
 		Value: "*:" + logger.LogDebug.String(),
 	}
-	// configurationFile defines a flag for the path to the main toml configuration file
 	configurationFile = cli.StringFlag{
 		Name: "config",
-		Usage: "The `" + filePathPlaceholder + "` for the main configuration file. This TOML file contain the main " +
+		Usage: "The `[path]` for the main configuration file. This TOML file contains the main " +
 			"configurations such as storage setups, epoch duration and so on.",
 		Value: "config/config.toml",
 	}
-	// logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
-	// restApiInterface defines a flag for the interface on which the rest API will try to bind with
 	restApiInterface = cli.StringFlag{
 		Name: "rest-api-interface",
 		Usage: "The interface `address and port` to which the REST API will attempt to bind. " +
 			"To bind to all available interfaces, set this flag to :8080",
 		Value: facade.DefaultRestInterface,
 	}
-	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
 		Usage: "This flag specifies the `directory` where the node will store databases and logs.",
 		Value: "",
 	}
-	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
 		Name:  "disable-ansi-color",
 		Usage: "Boolean option for disabling ANSI colors in the logging system.",
 	}
-	// logWithLoggerName is used to enable log correlation elements
 	logWithLoggerName = cli.BoolFlag{
 		Name:  "log-logger-name",
 		Usage: "Boolean option for logger name in the logs.",

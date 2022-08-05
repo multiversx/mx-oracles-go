@@ -281,6 +281,7 @@ func getMapFromSlice(exchangesSlice []string) map[string]struct{} {
 	return exchangesMap
 }
 
+// TODO: EN-12835 extract this into core
 func attachFileLogger(log logger.Logger, flagsConfig config.ContextFlagsConfig) (elrondFactory.FileLoggingHandler, error) {
 	var fileLogging elrondFactory.FileLoggingHandler
 	var err error
