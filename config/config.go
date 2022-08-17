@@ -36,7 +36,7 @@ type Pair struct {
 	Exchanges                 []string
 }
 
-// ContextFlagsConfig the configuration for flags
+// ContextFlagsConfig holds the configuration for flags
 type ContextFlagsConfig struct {
 	WorkingDir        string
 	LogLevel          string

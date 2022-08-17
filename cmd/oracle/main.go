@@ -32,7 +32,7 @@ import (
 
 const (
 	defaultLogsPath = "logs"
-	logFilePrefix   = "elrond-eth-bridge"
+	logFilePrefix   = "elrond-oracle"
 )
 
 var log = logger.GetOrCreate("priceFeeder/main")

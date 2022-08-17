@@ -1,6 +1,6 @@
 ---
 name: Feature
-about: Suggest a new feature for elrond-eth-bridge
+about: Suggest a new feature for elrond-oracle
 title: "[FEAT]"
 labels: enhancement
 assignees: ''

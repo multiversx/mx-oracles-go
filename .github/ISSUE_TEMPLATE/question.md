@@ -1,6 +1,6 @@
 ---
 name: Question
-about: Ask a question about elrond-eth-bridge
+about: Ask a question about elrond-oracle
 title: "[QUESTION]"
 labels: ''
 assignees: ''
