@@ -15,6 +15,7 @@
     ProxyRestAPIEntityType = "proxy"
     ProxyFinalityCheck = false
     ProxyMaxNoncesDelta = 7 # the number of maximum blocks allowed to be "in front" of what the metachain has notarized
+    LogFileLifeSpanInSec = 86400 # 24h
 
 
 # Each pair has a specific list of exchanges from where the price can be fetched

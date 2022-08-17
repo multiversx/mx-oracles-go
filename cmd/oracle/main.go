@@ -4,15 +4,21 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
 	elrondCore "github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	elrondFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	elrondCommon "github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-oracle/config"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator"
+	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/api/gin"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/fetchers"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/notifees"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/blockchain"
@@ -21,31 +27,76 @@ import (
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/core/polling"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/data"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/interactors"
+	"github.com/urfave/cli"
 )
 
-const configPath = "config/config.toml"
+const (
+	defaultLogsPath = "logs"
+	logFilePrefix   = "elrond-oracle"
+)
 
 var log = logger.GetOrCreate("priceFeeder/main")
 
+// appVersion should be populated at build time using ldflags
+// Usage examples:
+// linux/mac:
+//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+// windows:
+//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
+//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
+var appVersion = elrondCommon.UnVersionedAppString
+
 func main() {
-	_ = logger.SetLogLevel("*:DEBUG")
+	app := cli.NewApp()
+	app.Name = "Relay CLI app"
+	app.Usage = "Price feeder will fetch the price of a defined pair from a bunch of exchanges, and will" +
+		" write to the contract if the price changed"
+	app.Flags = getFlags()
+	machineID := elrondCore.GetAnonymizedMachineID(app.Name)
+	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
+	app.Authors = []cli.Author{
+		{
+			Name:  "The Elrond Team",
+			Email: "contact@elrond.com",
+		},
+	}
 
-	log.Info("Price feeder will fetch the price of a defined pair from a bunch of exchanges, and will" +
-		" write to the contract if the price changed")
-	log.Info("application started")
+	app.Action = func(c *cli.Context) error {
+		return startOracle(c, app.Version)
+	}
 
-	err := runApp()
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Error(err.Error())
-	} else {
-		log.Info("application gracefully closed")
+		os.Exit(1)
 	}
 }
 
-func runApp() error {
-	cfg, err := loadConfig(configPath)
+func startOracle(ctx *cli.Context, version string) error {
+	flagsConfig := getFlagsConfig(ctx)
+
+	fileLogging, errLogger := attachFileLogger(log, flagsConfig)
+	if errLogger != nil {
+		return errLogger
+	}
+
+	log.Info("starting oracle node", "version", version, "pid", os.Getpid())
+
+	err := logger.SetLogLevel(flagsConfig.LogLevel)
 	if err != nil {
 		return err
+	}
+
+	cfg, err := loadConfig(flagsConfig.ConfigurationFile)
+	if err != nil {
+		return err
+	}
+
+	if !check.IfNil(fileLogging) {
+		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfg.GeneralConfig.LogFileLifeSpanInSec))
+		if err != nil {
+			return err
+		}
 	}
 
 	for key, val := range cfg.MexTokenIDsMappings {
@@ -160,6 +211,16 @@ func runApp() error {
 		return err
 	}
 
+	httpServerWrapper, err := gin.NewWebServerHandler(flagsConfig.RestApiInterface)
+	if err != nil {
+		return err
+	}
+
+	err = httpServerWrapper.StartHttpServer()
+	if err != nil {
+		return err
+	}
+
 	log.Info("Starting Elrond Notifee")
 
 	err = pollingHandler.StartProcessingLoop()
@@ -218,4 +279,40 @@ func getMapFromSlice(exchangesSlice []string) map[string]struct{} {
 		exchangesMap[exchange] = struct{}{}
 	}
 	return exchangesMap
+}
+
+// TODO: EN-12835 extract this into core
+func attachFileLogger(log logger.Logger, flagsConfig config.ContextFlagsConfig) (elrondFactory.FileLoggingHandler, error) {
+	var fileLogging elrondFactory.FileLoggingHandler
+	var err error
+	if flagsConfig.SaveLogFile {
+		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
+		if err != nil {
+			return nil, fmt.Errorf("%w creating a log file", err)
+		}
+	}
+
+	err = logger.SetDisplayByteSlice(logger.ToHex)
+	log.LogIfError(err)
+	logger.ToggleLoggerName(flagsConfig.EnableLogName)
+	logLevelFlagValue := flagsConfig.LogLevel
+	err = logger.SetLogLevel(logLevelFlagValue)
+	if err != nil {
+		return nil, err
+	}
+
+	if flagsConfig.DisableAnsiColor {
+		err = logger.RemoveLogObserver(os.Stdout)
+		if err != nil {
+			return nil, err
+		}
+
+		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
+		if err != nil {
+			return nil, err
+		}
+	}
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
+
+	return fileLogging, nil
 }
