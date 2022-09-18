@@ -6,7 +6,7 @@
     AggregatorContractAddress = "erd1qqqqqqqqqqqqqpgq74rwur65602kl0hudyzq8jxcsd02yv7785cs8gkzxs" # aggregator contract address
     BaseGasLimit = 25000000 # base gas limit
     GasLimitForEach = 2000000 # gas limit for each fetcher
-    MinResultsNum = 3 # min number of results waiting
+    MinResultsNum = 1 # min number of results waiting
     PollIntervalInSeconds = 2 # polling interval for fetchers
     AutoSendIntervalInSeconds = 10 # seconds before next send price when percent difference is not met
 
@@ -33,6 +33,18 @@
     PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
     Decimals = 2 # decimals for prices
     Exchanges = ["Binance", "Bitfinex", "Crypto.com", "HitBTC", "Huobi", "Okex", "Maiar"]
+[[Pairs]]
+    Base = "MEX"
+    Quote = "USD"
+    PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
+    Decimals = 10 # decimals for prices
+    Exchanges = ["Maiar"]
+[[Pairs]]
+    Base = "RIDE"
+    Quote = "USD"
+    PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
+    Decimals = 6 # decimals for prices
+    Exchanges = ["Maiar"]
 
 # Maiar Exchange token ids mappings
 # This should be a mapping between the above generic symbols pairs and their maiar token ids equivalents
@@ -50,9 +62,9 @@
 [MexTokenIDsMappings.EGLD-USD]
     Base = "WEGLD-bd4d79"
     Quote = "USDC-c76f1f"
-[MexTokenIDsMappings.MEX-EGLD]
+[MexTokenIDsMappings.MEX-USD]
     Base = "MEX-455c57"
-    Quote = "WEGLD-bd4d79"
-[MexTokenIDsMappings.RIDE-EGLD]
+    Quote = "USDC-c76f1f"
+[MexTokenIDsMappings.RIDE-USD]
     Base = "RIDE-7d18e9"
-    Quote = "WEGLD-bd4d79"
+    Quote = "USDC-c76f1f"
