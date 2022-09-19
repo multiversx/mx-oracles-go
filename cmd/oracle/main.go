@@ -147,6 +147,9 @@ func startOracle(ctx *cli.Context, version string) error {
 	}
 
 	privateKey, err := keyGen.PrivateKeyFromByteArray(privateKeyBytes)
+	if err != nil {
+		return err
+	}
 
 	authClient, err := createAuthClient(proxy, privateKey, cfg.AuthenticationConfig)
 	if err != nil {
