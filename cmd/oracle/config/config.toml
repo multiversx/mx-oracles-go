@@ -17,6 +17,9 @@
     ProxyMaxNoncesDelta = 7 # the number of maximum blocks allowed to be "in front" of what the metachain has notarized
     LogFileLifeSpanInSec = 86400 # 24h
 
+[AuthenticationConfig]
+    TokenExpiryInSeconds = 86400 # 24h
+    Host = "oracle"
 
 # Each pair has a specific list of exchanges from where the price can be fetched
 # This list must be in respect with the implemented fetchers names:

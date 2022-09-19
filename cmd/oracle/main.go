@@ -148,7 +148,18 @@ func startOracle(ctx *cli.Context, version string) error {
 
 	privateKey, err := keyGen.PrivateKeyFromByteArray(privateKeyBytes)
 
-	priceFetchers, err := createPriceFetchers(cfg.MexTokenIDsMappings, proxy, privateKey)
+	authClient, err := createAuthClient(proxy, privateKey, cfg.AuthenticationConfig)
+	if err != nil {
+		return err
+	}
+
+	graphqlResponseGetter, err := createGraphqlResponseGetter(authClient)
+	if err != nil {
+		return err
+	}
+	httpResponseGetter := &aggregator.HttpResponseGetter{}
+
+	priceFetchers, err := createPriceFetchers(httpResponseGetter, graphqlResponseGetter, cfg.MexTokenIDsMappings)
 	if err != nil {
 		return err
 	}
@@ -252,17 +263,12 @@ func loadConfig(filepath string) (config.PriceNotifierConfig, error) {
 	return cfg, nil
 }
 
-func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair, proxy workflows.ProxyHandler, privateKey crypto.PrivateKey) ([]aggregator.PriceFetcher, error) {
+func createPriceFetchers(httpReponseGetter *aggregator.HttpResponseGetter, graphqlResponseGetter aggregator.GraphqlGetter, tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
 	exchanges := fetchers.ImplementedFetchers
 	priceFetchers := make([]aggregator.PriceFetcher, 0, len(exchanges))
 
-	graphqlResponseGetter, err := createGraphqlResponseGetter(proxy, privateKey)
-	if err != nil {
-		return nil, err
-	}
-
 	for exchangeName := range exchanges {
-		priceFetcher, err := fetchers.NewPriceFetcher(exchangeName, &aggregator.HttpResponseGetter{}, graphqlResponseGetter, tokenIdsMappings)
+		priceFetcher, err := fetchers.NewPriceFetcher(exchangeName, httpReponseGetter, graphqlResponseGetter, tokenIdsMappings)
 		if err != nil {
 			return nil, err
 		}
@@ -273,25 +279,20 @@ func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair, p
 	return priceFetchers, nil
 }
 
-func createGraphqlResponseGetter(proxy workflows.ProxyHandler, privateKey crypto.PrivateKey) (aggregator.GraphqlGetter, error) {
-	authClient, err := createAuthClient(proxy, privateKey)
-	if err != nil {
-		return nil, err
-	}
-
+func createGraphqlResponseGetter(client authentication.AuthClient) (aggregator.GraphqlGetter, error) {
 	return &aggregator.GraphqlResponseGetter{
-		AuthClient: authClient,
+		AuthClient: client,
 	}, nil
 }
 
-func createAuthClient(proxy workflows.ProxyHandler, privateKey crypto.PrivateKey) (authentication.AuthClient, error) {
+func createAuthClient(proxy workflows.ProxyHandler, privateKey crypto.PrivateKey, config config.AuthenticationConfig) (authentication.AuthClient, error) {
 	args := authentication.ArgsNativeAuthClient{
 		TxSigner:             blockchain.NewTxSigner(),
 		ExtraInfo:            nil,
 		Proxy:                proxy,
 		PrivateKey:           privateKey,
-		TokenExpiryInSeconds: 60 * 60 * 24,
-		Host:                 "oracle",
+		TokenExpiryInSeconds: uint64(config.TokenExpiryInSeconds),
+		Host:                 config.Host,
 	}
 
 	authClient, err := authentication.NewNativeAuthClient(args)

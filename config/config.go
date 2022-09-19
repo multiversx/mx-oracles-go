@@ -4,9 +4,10 @@ import "github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/fetchers"
 
 // PriceNotifierConfig price notifier configuration struct
 type PriceNotifierConfig struct {
-	GeneralConfig       GeneralNotifierConfig
-	Pairs               []Pair
-	MexTokenIDsMappings map[string]fetchers.MaiarTokensPair
+	GeneralConfig        GeneralNotifierConfig
+	AuthenticationConfig AuthenticationConfig
+	Pairs                []Pair
+	MexTokenIDsMappings  map[string]fetchers.MaiarTokensPair
 }
 
 // GeneralNotifierConfig general price notifier configuration struct
@@ -25,6 +26,12 @@ type GeneralNotifierConfig struct {
 	ProxyMaxNoncesDelta          int
 	ProxyFinalityCheck           bool
 	LogFileLifeSpanInSec         int
+}
+
+// AuthenticationConfig authentication configuration struct
+type AuthenticationConfig struct {
+	TokenExpiryInSeconds int
+	Host                 string
 }
 
 // Pair parameters for a pair
