@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/core/polling"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/data"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/interactors"
+	"github.com/ElrondNetwork/elrond-sdk-erdgo/interactors/nonceHandlerV2"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/workflows"
 	"github.com/urfave/cli"
 )
@@ -110,7 +111,7 @@ func startOracle(ctx *cli.Context, version string) error {
 		return fmt.Errorf("empty NetworkAddress in config file")
 	}
 
-	args := blockchain.ArgsElrondProxy{
+	argsProxy := blockchain.ArgsElrondProxy{
 		ProxyURL:            cfg.GeneralConfig.NetworkAddress,
 		SameScState:         false,
 		ShouldBeSynced:      false,
@@ -119,7 +120,7 @@ func startOracle(ctx *cli.Context, version string) error {
 		CacheExpirationTime: time.Second * time.Duration(cfg.GeneralConfig.ProxyCacherExpirationSeconds),
 		EntityType:          erdgoCore.RestAPIEntityType(cfg.GeneralConfig.ProxyRestAPIEntityType),
 	}
-	proxy, err := blockchain.NewElrondProxy(args)
+	proxy, err := blockchain.NewElrondProxy(argsProxy)
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,12 @@ func startOracle(ctx *cli.Context, version string) error {
 		return err
 	}
 
-	txNonceHandler, err := interactors.NewNonceTransactionHandler(proxy, time.Second*time.Duration(cfg.GeneralConfig.IntervalToResendTxsInSeconds), true)
+	args := nonceHandlerV2.ArgsNonceTransactionsHandlerV2{
+		Proxy:            proxy,
+		IntervalToResend: time.Second * time.Duration(cfg.GeneralConfig.IntervalToResendTxsInSeconds),
+		Creator:          &nonceHandlerV2.SingleTransactionAddressNonceHandlerCreator{},
+	}
+	txNonceHandler, err := nonceHandlerV2.NewNonceTransactionHandlerV2(args)
 	if err != nil {
 		return err
 	}
@@ -156,11 +162,15 @@ func startOracle(ctx *cli.Context, version string) error {
 		return err
 	}
 
-	graphqlResponseGetter, err := createGraphqlResponseGetter(authClient)
+	graphqlResponseGetter, err := aggregator.NewGraphqlResponseGetter(authClient)
 	if err != nil {
 		return err
 	}
-	httpResponseGetter := &aggregator.HttpResponseGetter{}
+
+	httpResponseGetter, err := aggregator.NewHttpResponseGetter()
+	if err != nil {
+		return err
+	}
 
 	priceFetchers, err := createPriceFetchers(httpResponseGetter, graphqlResponseGetter, cfg.MexTokenIDsMappings)
 	if err != nil {
@@ -266,7 +276,7 @@ func loadConfig(filepath string) (config.PriceNotifierConfig, error) {
 	return cfg, nil
 }
 
-func createPriceFetchers(httpReponseGetter *aggregator.HttpResponseGetter, graphqlResponseGetter aggregator.GraphqlGetter, tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
+func createPriceFetchers(httpReponseGetter aggregator.ResponseGetter, graphqlResponseGetter aggregator.GraphqlGetter, tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
 	exchanges := fetchers.ImplementedFetchers
 	priceFetchers := make([]aggregator.PriceFetcher, 0, len(exchanges))
 
@@ -280,12 +290,6 @@ func createPriceFetchers(httpReponseGetter *aggregator.HttpResponseGetter, graph
 	}
 
 	return priceFetchers, nil
-}
-
-func createGraphqlResponseGetter(client authentication.AuthClient) (aggregator.GraphqlGetter, error) {
-	return &aggregator.GraphqlResponseGetter{
-		AuthClient: client,
-	}, nil
 }
 
 func createAuthClient(proxy workflows.ProxyHandler, privateKey crypto.PrivateKey, config config.AuthenticationConfig) (authentication.AuthClient, error) {
