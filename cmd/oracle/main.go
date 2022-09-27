@@ -10,6 +10,7 @@ import (
 
 	elrondCore "github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -21,12 +22,15 @@ import (
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/api/gin"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/fetchers"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/notifees"
+	"github.com/ElrondNetwork/elrond-sdk-erdgo/authentication"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/blockchain"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/builders"
 	erdgoCore "github.com/ElrondNetwork/elrond-sdk-erdgo/core"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/core/polling"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/data"
 	"github.com/ElrondNetwork/elrond-sdk-erdgo/interactors"
+	"github.com/ElrondNetwork/elrond-sdk-erdgo/interactors/nonceHandlerV2"
+	"github.com/ElrondNetwork/elrond-sdk-erdgo/workflows"
 	"github.com/urfave/cli"
 )
 
@@ -107,7 +111,7 @@ func startOracle(ctx *cli.Context, version string) error {
 		return fmt.Errorf("empty NetworkAddress in config file")
 	}
 
-	args := blockchain.ArgsElrondProxy{
+	argsProxy := blockchain.ArgsElrondProxy{
 		ProxyURL:            cfg.GeneralConfig.NetworkAddress,
 		SameScState:         false,
 		ShouldBeSynced:      false,
@@ -116,21 +120,7 @@ func startOracle(ctx *cli.Context, version string) error {
 		CacheExpirationTime: time.Second * time.Duration(cfg.GeneralConfig.ProxyCacherExpirationSeconds),
 		EntityType:          erdgoCore.RestAPIEntityType(cfg.GeneralConfig.ProxyRestAPIEntityType),
 	}
-	proxy, err := blockchain.NewElrondProxy(args)
-	if err != nil {
-		return err
-	}
-
-	priceFetchers, err := createPriceFetchers(cfg.MexTokenIDsMappings)
-	if err != nil {
-		return err
-	}
-
-	argsPriceAggregator := aggregator.ArgsPriceAggregator{
-		PriceFetchers: priceFetchers,
-		MinResultsNum: cfg.GeneralConfig.MinResultsNum,
-	}
-	priceAggregator, err := aggregator.NewPriceAggregator(argsPriceAggregator)
+	proxy, err := blockchain.NewElrondProxy(argsProxy)
 	if err != nil {
 		return err
 	}
@@ -140,7 +130,12 @@ func startOracle(ctx *cli.Context, version string) error {
 		return err
 	}
 
-	txNonceHandler, err := interactors.NewNonceTransactionHandler(proxy, time.Second*time.Duration(cfg.GeneralConfig.IntervalToResendTxsInSeconds), true)
+	args := nonceHandlerV2.ArgsNonceTransactionsHandlerV2{
+		Proxy:            proxy,
+		IntervalToResend: time.Second * time.Duration(cfg.GeneralConfig.IntervalToResendTxsInSeconds),
+		Creator:          &nonceHandlerV2.SingleTransactionAddressNonceHandlerCreator{},
+	}
+	txNonceHandler, err := nonceHandlerV2.NewNonceTransactionHandlerV2(args)
 	if err != nil {
 		return err
 	}
@@ -158,6 +153,38 @@ func startOracle(ctx *cli.Context, version string) error {
 	}
 
 	privateKey, err := keyGen.PrivateKeyFromByteArray(privateKeyBytes)
+	if err != nil {
+		return err
+	}
+
+	authClient, err := createAuthClient(proxy, privateKey, cfg.AuthenticationConfig)
+	if err != nil {
+		return err
+	}
+
+	graphqlResponseGetter, err := aggregator.NewGraphqlResponseGetter(authClient)
+	if err != nil {
+		return err
+	}
+
+	httpResponseGetter, err := aggregator.NewHttpResponseGetter()
+	if err != nil {
+		return err
+	}
+
+	priceFetchers, err := createPriceFetchers(httpResponseGetter, graphqlResponseGetter, cfg.MexTokenIDsMappings)
+	if err != nil {
+		return err
+	}
+
+	argsPriceAggregator := aggregator.ArgsPriceAggregator{
+		PriceFetchers: priceFetchers,
+		MinResultsNum: cfg.GeneralConfig.MinResultsNum,
+	}
+	priceAggregator, err := aggregator.NewPriceAggregator(argsPriceAggregator)
+	if err != nil {
+		return err
+	}
 
 	if err != nil {
 		return err
@@ -249,11 +276,12 @@ func loadConfig(filepath string) (config.PriceNotifierConfig, error) {
 	return cfg, nil
 }
 
-func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
+func createPriceFetchers(httpReponseGetter aggregator.ResponseGetter, graphqlResponseGetter aggregator.GraphqlGetter, tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
 	exchanges := fetchers.ImplementedFetchers
 	priceFetchers := make([]aggregator.PriceFetcher, 0, len(exchanges))
+
 	for exchangeName := range exchanges {
-		priceFetcher, err := fetchers.NewPriceFetcher(exchangeName, &aggregator.HttpResponseGetter{}, tokenIdsMappings)
+		priceFetcher, err := fetchers.NewPriceFetcher(exchangeName, httpReponseGetter, graphqlResponseGetter, tokenIdsMappings)
 		if err != nil {
 			return nil, err
 		}
@@ -262,6 +290,24 @@ func createPriceFetchers(tokenIdsMappings map[string]fetchers.MaiarTokensPair) (
 	}
 
 	return priceFetchers, nil
+}
+
+func createAuthClient(proxy workflows.ProxyHandler, privateKey crypto.PrivateKey, config config.AuthenticationConfig) (authentication.AuthClient, error) {
+	args := authentication.ArgsNativeAuthClient{
+		TxSigner:             blockchain.NewTxSigner(),
+		ExtraInfo:            nil,
+		Proxy:                proxy,
+		PrivateKey:           privateKey,
+		TokenExpiryInSeconds: uint64(config.TokenExpiryInSeconds),
+		Host:                 config.Host,
+	}
+
+	authClient, err := authentication.NewNativeAuthClient(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return authClient, nil
 }
 
 func addPairToFetchers(argsPair aggregator.ArgsPair, priceFetchers []aggregator.PriceFetcher) {
