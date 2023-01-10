@@ -1,2 +1,2 @@
-# elrond-oracle
-Elrond oracle system
+# mx-oracles-go
+MultiversX oracles system
