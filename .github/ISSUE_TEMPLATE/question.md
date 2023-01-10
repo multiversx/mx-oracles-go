@@ -1,6 +1,6 @@
 ---
 name: Question
-about: Ask a question about elrond-oracle
+about: Ask a question about mx-oracles-go
 title: "[QUESTION]"
 labels: ''
 assignees: ''

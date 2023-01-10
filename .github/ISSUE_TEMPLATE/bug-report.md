@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug in elrond-oracle node
+about: Report a bug in mx-oracles-go node
 title: "[BUG]"
 labels: bug
 assignees: ''
