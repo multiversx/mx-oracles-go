@@ -8,35 +8,35 @@ import (
 	"syscall"
 	"time"
 
-	elrondCore "github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	elrondFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	elrondCommon "github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/logging"
-	"github.com/ElrondNetwork/elrond-oracle/config"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/api/gin"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/fetchers"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/notifees"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/authentication"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/blockchain"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/builders"
-	erdgoCore "github.com/ElrondNetwork/elrond-sdk-erdgo/core"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/core/polling"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/data"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/interactors"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/interactors/nonceHandlerV2"
-	"github.com/ElrondNetwork/elrond-sdk-erdgo/workflows"
+	chainCore "github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	chainFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	chainCommon "github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-logger-go/file"
+	"github.com/multiversx/mx-oracles-go/config"
+	"github.com/multiversx/mx-sdk-go/aggregator"
+	"github.com/multiversx/mx-sdk-go/aggregator/api/gin"
+	"github.com/multiversx/mx-sdk-go/aggregator/fetchers"
+	"github.com/multiversx/mx-sdk-go/aggregator/notifees"
+	"github.com/multiversx/mx-sdk-go/authentication"
+	"github.com/multiversx/mx-sdk-go/blockchain"
+	"github.com/multiversx/mx-sdk-go/blockchain/cryptoProvider"
+	"github.com/multiversx/mx-sdk-go/builders"
+	sdkCore "github.com/multiversx/mx-sdk-go/core"
+	"github.com/multiversx/mx-sdk-go/core/polling"
+	"github.com/multiversx/mx-sdk-go/data"
+	"github.com/multiversx/mx-sdk-go/interactors"
+	"github.com/multiversx/mx-sdk-go/interactors/nonceHandlerV2"
+	"github.com/multiversx/mx-sdk-go/workflows"
 	"github.com/urfave/cli"
 )
 
 const (
 	defaultLogsPath = "logs"
-	logFilePrefix   = "elrond-oracle"
+	logFilePrefix   = "mx-oracle"
 )
 
 var log = logger.GetOrCreate("priceFeeder/main")
@@ -48,7 +48,7 @@ var log = logger.GetOrCreate("priceFeeder/main")
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = elrondCommon.UnVersionedAppString
+var appVersion = chainCommon.UnVersionedAppString
 
 func main() {
 	app := cli.NewApp()
@@ -56,12 +56,12 @@ func main() {
 	app.Usage = "Price feeder will fetch the price of a defined pair from a bunch of exchanges, and will" +
 		" write to the contract if the price changed"
 	app.Flags = getFlags()
-	machineID := elrondCore.GetAnonymizedMachineID(app.Name)
+	machineID := chainCore.GetAnonymizedMachineID(app.Name)
 	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 
@@ -97,7 +97,10 @@ func startOracle(ctx *cli.Context, version string) error {
 	}
 
 	if !check.IfNil(fileLogging) {
-		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfg.GeneralConfig.LogFileLifeSpanInSec))
+		logsCfg := cfg.GeneralConfig.Logs
+		timeLogLifeSpan := time.Second * time.Duration(logsCfg.LogFileLifeSpanInSec)
+		sizeLogLifeSpanInMB := uint64(logsCfg.LogFileLifeSpanInMB)
+		err = fileLogging.ChangeFileLifeSpan(timeLogLifeSpan, sizeLogLifeSpanInMB)
 		if err != nil {
 			return err
 		}
@@ -111,21 +114,21 @@ func startOracle(ctx *cli.Context, version string) error {
 		return fmt.Errorf("empty NetworkAddress in config file")
 	}
 
-	argsProxy := blockchain.ArgsElrondProxy{
+	argsProxy := blockchain.ArgsProxy{
 		ProxyURL:            cfg.GeneralConfig.NetworkAddress,
 		SameScState:         false,
 		ShouldBeSynced:      false,
 		FinalityCheck:       cfg.GeneralConfig.ProxyFinalityCheck,
 		AllowedDeltaToFinal: cfg.GeneralConfig.ProxyMaxNoncesDelta,
 		CacheExpirationTime: time.Second * time.Duration(cfg.GeneralConfig.ProxyCacherExpirationSeconds),
-		EntityType:          erdgoCore.RestAPIEntityType(cfg.GeneralConfig.ProxyRestAPIEntityType),
+		EntityType:          sdkCore.RestAPIEntityType(cfg.GeneralConfig.ProxyRestAPIEntityType),
 	}
-	proxy, err := blockchain.NewElrondProxy(argsProxy)
+	proxy, err := blockchain.NewProxy(argsProxy)
 	if err != nil {
 		return err
 	}
 
-	txBuilder, err := builders.NewTxBuilder(blockchain.NewTxSigner())
+	txBuilder, err := builders.NewTxBuilder(cryptoProvider.NewSigner())
 	if err != nil {
 		return err
 	}
@@ -152,12 +155,12 @@ func startOracle(ctx *cli.Context, version string) error {
 		return err
 	}
 
-	privateKey, err := keyGen.PrivateKeyFromByteArray(privateKeyBytes)
+	cryptoHolder, err := cryptoProvider.NewCryptoComponentsHolder(keyGen, privateKeyBytes)
 	if err != nil {
 		return err
 	}
 
-	authClient, err := createAuthClient(proxy, privateKey, cfg.AuthenticationConfig)
+	authClient, err := createAuthClient(proxy, cryptoHolder, cfg.AuthenticationConfig)
 	if err != nil {
 		return err
 	}
@@ -189,16 +192,16 @@ func startOracle(ctx *cli.Context, version string) error {
 	if err != nil {
 		return err
 	}
-	argsElrondNotifee := notifees.ArgsElrondNotifee{
+	argsNotifee := notifees.ArgsMxNotifee{
 		Proxy:           proxy,
 		TxBuilder:       txBuilder,
 		TxNonceHandler:  txNonceHandler,
 		ContractAddress: aggregatorAddress,
-		PrivateKey:      privateKey,
 		BaseGasLimit:    cfg.GeneralConfig.BaseGasLimit,
 		GasLimitForEach: cfg.GeneralConfig.GasLimitForEach,
+		CryptoHolder:    cryptoHolder,
 	}
-	elrondNotifee, err := notifees.NewElrondNotifee(argsElrondNotifee)
+	mxNotifee, err := notifees.NewMxNotifee(argsNotifee)
 	if err != nil {
 		return err
 	}
@@ -206,7 +209,7 @@ func startOracle(ctx *cli.Context, version string) error {
 	argsPriceNotifier := aggregator.ArgsPriceNotifier{
 		Pairs:            []*aggregator.ArgsPair{},
 		Aggregator:       priceAggregator,
-		Notifee:          elrondNotifee,
+		Notifee:          mxNotifee,
 		AutoSendInterval: time.Second * time.Duration(cfg.GeneralConfig.AutoSendIntervalInSeconds),
 	}
 	for _, pair := range cfg.Pairs {
@@ -248,7 +251,7 @@ func startOracle(ctx *cli.Context, version string) error {
 		return err
 	}
 
-	log.Info("Starting Elrond Notifee")
+	log.Info("Starting MultiversX Notifee")
 
 	err = pollingHandler.StartProcessingLoop()
 	if err != nil {
@@ -268,7 +271,7 @@ func startOracle(ctx *cli.Context, version string) error {
 
 func loadConfig(filepath string) (config.PriceNotifierConfig, error) {
 	cfg := config.PriceNotifierConfig{}
-	err := elrondCore.LoadTomlFile(&cfg, filepath)
+	err := chainCore.LoadTomlFile(&cfg, filepath)
 	if err != nil {
 		return config.PriceNotifierConfig{}, err
 	}
@@ -292,14 +295,14 @@ func createPriceFetchers(httpReponseGetter aggregator.ResponseGetter, graphqlRes
 	return priceFetchers, nil
 }
 
-func createAuthClient(proxy workflows.ProxyHandler, privateKey crypto.PrivateKey, config config.AuthenticationConfig) (authentication.AuthClient, error) {
+func createAuthClient(proxy workflows.ProxyHandler, cryptoHolder sdkCore.CryptoComponentsHolder, config config.AuthenticationConfig) (authentication.AuthClient, error) {
 	args := authentication.ArgsNativeAuthClient{
-		TxSigner:             blockchain.NewTxSigner(),
-		ExtraInfo:            nil,
-		Proxy:                proxy,
-		PrivateKey:           privateKey,
-		TokenExpiryInSeconds: uint64(config.TokenExpiryInSeconds),
-		Host:                 config.Host,
+		Signer:                 cryptoProvider.NewSigner(),
+		ExtraInfo:              nil,
+		Proxy:                  proxy,
+		TokenExpiryInSeconds:   uint64(config.TokenExpiryInSeconds),
+		Host:                   config.Host,
+		CryptoComponentsHolder: cryptoHolder,
 	}
 
 	authClient, err := authentication.NewNativeAuthClient(args)
@@ -328,11 +331,16 @@ func getMapFromSlice(exchangesSlice []string) map[string]struct{} {
 }
 
 // TODO: EN-12835 extract this into core
-func attachFileLogger(log logger.Logger, flagsConfig config.ContextFlagsConfig) (elrondFactory.FileLoggingHandler, error) {
-	var fileLogging elrondFactory.FileLoggingHandler
+func attachFileLogger(log logger.Logger, flagsConfig config.ContextFlagsConfig) (chainFactory.FileLoggingHandler, error) {
+	var fileLogging chainFactory.FileLoggingHandler
 	var err error
 	if flagsConfig.SaveLogFile {
-		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
+		args := file.ArgsFileLogging{
+			WorkingDir:      flagsConfig.WorkingDir,
+			DefaultLogsPath: defaultLogsPath,
+			LogFilePrefix:   logFilePrefix,
+		}
+		fileLogging, err = file.NewFileLogging(args)
 		if err != nil {
 			return nil, fmt.Errorf("%w creating a log file", err)
 		}

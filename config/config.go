@@ -1,6 +1,6 @@
 package config
 
-import "github.com/ElrondNetwork/elrond-sdk-erdgo/aggregator/fetchers"
+import "github.com/multiversx/mx-sdk-go/aggregator/fetchers"
 
 // PriceNotifierConfig price notifier configuration struct
 type PriceNotifierConfig struct {
@@ -25,7 +25,13 @@ type GeneralNotifierConfig struct {
 	ProxyRestAPIEntityType       string
 	ProxyMaxNoncesDelta          int
 	ProxyFinalityCheck           bool
-	LogFileLifeSpanInSec         int
+	Logs                         LogsConfig
+}
+
+// LogsConfig will hold settings related to the logging sub-system
+type LogsConfig struct {
+	LogFileLifeSpanInSec int
+	LogFileLifeSpanInMB  int
 }
 
 // AuthenticationConfig authentication configuration struct

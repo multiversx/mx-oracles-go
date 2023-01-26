@@ -1,9 +1,9 @@
 package main
 
 import (
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-oracle/config"
+	"github.com/multiversx/mx-chain-go/facade"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-oracles-go/config"
 	"github.com/urfave/cli"
 )
 
