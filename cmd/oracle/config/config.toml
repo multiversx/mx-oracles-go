@@ -1,6 +1,6 @@
 [GeneralConfig]
-    NetworkAddress = "https://devnet-gateway.elrond.com" # the network address
-    PrivateKeyFile = "keys/oracle.pem" # the path to the pem file containing the relayer elrond wallet allowed to write to contract
+    NetworkAddress = "https://devnet-gateway.multiversx.com" # the network address
+    PrivateKeyFile = "keys/oracle.pem" # the path to the pem file containing the relayer multiversx wallet allowed to write to contract
     IntervalToResendTxsInSeconds = 60 # the time in seconds between nonce reads
     ProxyCacherExpirationSeconds = 600 # the caching time in seconds
     AggregatorContractAddress = "erd1qqqqqqqqqqqqqpgq74rwur65602kl0hudyzq8jxcsd02yv7785cs8gkzxs" # aggregator contract address
@@ -15,7 +15,10 @@
     ProxyRestAPIEntityType = "proxy"
     ProxyFinalityCheck = false
     ProxyMaxNoncesDelta = 7 # the number of maximum blocks allowed to be "in front" of what the metachain has notarized
+
+[Logs]
     LogFileLifeSpanInSec = 86400 # 24h
+    LogFileLifeSpanInMB = 1024 # 1GB
 
 [AuthenticationConfig]
     TokenExpiryInSeconds = 86400 # 24h
@@ -23,7 +26,7 @@
 
 # Each pair has a specific list of exchanges from where the price can be fetched
 # This list must be in respect with the implemented fetchers names:
-# "Binance", "Bitfinex", "Crypto.com", "Gemini", "HitBTC", "Huobi", "Kraken", "Okex", "Maiar"
+# "Binance", "Bitfinex", "Crypto.com", "Gemini", "HitBTC", "Huobi", "Kraken", "Okex", "XExchange"
 [[Pairs]]
     Base = "ETH"
     Quote = "USD"
@@ -35,24 +38,24 @@
     Quote = "USD"
     PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
     Decimals = 2 # decimals for prices
-    Exchanges = ["Binance", "Bitfinex", "Crypto.com", "HitBTC", "Huobi", "Okex", "Maiar"]
+    Exchanges = ["Binance", "Bitfinex", "Crypto.com", "HitBTC", "Huobi", "Okex", "XExchange"]
 [[Pairs]]
     Base = "MEX"
     Quote = "USD"
     PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
     Decimals = 10 # decimals for prices
-    Exchanges = ["Maiar"]
+    Exchanges = ["XExchange"]
 [[Pairs]]
     Base = "RIDE"
     Quote = "USD"
     PercentDifferenceToNotify = 1 # percent difference to notify price change. 0 notifies for each change
     Decimals = 6 # decimals for prices
-    Exchanges = ["Maiar"]
+    Exchanges = ["XExchange"]
 
-# Maiar Exchange token ids mappings
-# This should be a mapping between the above generic symbols pairs and their maiar token ids equivalents
+# XExchange token ids mappings
+# This should be a mapping between the above generic symbols pairs and their xExchange token ids equivalents
 # The key in map must be uppercase and tokens should be separated by "-"
-# All available pairs can be found at https://api.elrond.com/mex-pairs
+# All available pairs can be found at https://api.multiversx.com/mex-pairs
 # egs.
 #   "ETH-USD"
 #       Base  = "ETH-tbd000"   -> placeholder, not added yet
@@ -60,14 +63,14 @@
 #   "EGLD-USD"
 #       Base  = "WEGLD-bd4d79"
 #       Quote = "USDC-c76f1f"
-[MexTokenIDsMappings]
+[XExchangeTokenIDsMappings]
 
-[MexTokenIDsMappings.EGLD-USD]
+[XExchangeTokenIDsMappings.EGLD-USD]
     Base = "WEGLD-bd4d79"
     Quote = "USDC-c76f1f"
-[MexTokenIDsMappings.MEX-USD]
+[XExchangeTokenIDsMappings.MEX-USD]
     Base = "MEX-455c57"
     Quote = "USDC-c76f1f"
-[MexTokenIDsMappings.RIDE-USD]
+[XExchangeTokenIDsMappings.RIDE-USD]
     Base = "RIDE-7d18e9"
     Quote = "USDC-c76f1f"
