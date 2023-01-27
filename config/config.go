@@ -4,10 +4,10 @@ import "github.com/multiversx/mx-sdk-go/aggregator/fetchers"
 
 // PriceNotifierConfig price notifier configuration struct
 type PriceNotifierConfig struct {
-	GeneralConfig        GeneralNotifierConfig
-	AuthenticationConfig AuthenticationConfig
-	Pairs                []Pair
-	MexTokenIDsMappings  map[string]fetchers.MaiarTokensPair
+	GeneralConfig             GeneralNotifierConfig
+	AuthenticationConfig      AuthenticationConfig
+	Pairs                     []Pair
+	XExchangeTokenIDsMappings map[string]fetchers.XExchangeTokensPair
 }
 
 // GeneralNotifierConfig general price notifier configuration struct

@@ -106,8 +106,8 @@ func startOracle(ctx *cli.Context, version string) error {
 		}
 	}
 
-	for key, val := range cfg.MexTokenIDsMappings {
-		log.Info("read mex token IDs mapping", "key", key, "quote", val.Quote, "base", val.Base)
+	for key, val := range cfg.XExchangeTokenIDsMappings {
+		log.Info("read xExchange token IDs mapping", "key", key, "quote", val.Quote, "base", val.Base)
 	}
 
 	if len(cfg.GeneralConfig.NetworkAddress) == 0 {
@@ -175,7 +175,7 @@ func startOracle(ctx *cli.Context, version string) error {
 		return err
 	}
 
-	priceFetchers, err := createPriceFetchers(httpResponseGetter, graphqlResponseGetter, cfg.MexTokenIDsMappings)
+	priceFetchers, err := createPriceFetchers(httpResponseGetter, graphqlResponseGetter, cfg.XExchangeTokenIDsMappings)
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func loadConfig(filepath string) (config.PriceNotifierConfig, error) {
 	return cfg, nil
 }
 
-func createPriceFetchers(httpReponseGetter aggregator.ResponseGetter, graphqlResponseGetter aggregator.GraphqlGetter, tokenIdsMappings map[string]fetchers.MaiarTokensPair) ([]aggregator.PriceFetcher, error) {
+func createPriceFetchers(httpReponseGetter aggregator.ResponseGetter, graphqlResponseGetter aggregator.GraphqlGetter, tokenIdsMappings map[string]fetchers.XExchangeTokensPair) ([]aggregator.PriceFetcher, error) {
 	exchanges := fetchers.ImplementedFetchers
 	priceFetchers := make([]aggregator.PriceFetcher, 0, len(exchanges))
 

@@ -7,7 +7,7 @@ require (
 	github.com/multiversx/mx-chain-crypto-go v1.2.5
 	github.com/multiversx/mx-chain-go v1.4.4
 	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-sdk-go v1.2.4
+	github.com/multiversx/mx-sdk-go v1.2.5
 	github.com/urfave/cli v1.22.10
 )
 
